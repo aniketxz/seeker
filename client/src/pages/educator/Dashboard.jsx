@@ -1,20 +1,37 @@
 import { useContext, useEffect, useState } from "react"
 import { AppContext } from "../../context/AppContext"
-import { assets, dummyDashboardData } from "../../assets/assets"
+import { assets } from "../../assets/assets"
 import Loading from "../../components/student/Loading"
 import DashboardDataCapsule from "../../components/educator/DashboardDataCapsule"
+import toast from "react-hot-toast"
+import axios from "axios"
 
 const Dashboard = () => {
-	const { currency } = useContext(AppContext)
+	const { currency, backendUrl, isEducator, getToken } = useContext(AppContext)
 	const [dashboardData, setDashboardData] = useState(null)
 
 	const fetchDashboardData = async () => {
-		setDashboardData(dummyDashboardData)
+		try {
+			const token = await getToken()
+			const { data } = await axios.get(backendUrl + "/api/educator/dashboard", {
+				headers: { Authorization: `Bearer ${token}` },
+			})
+
+			if (data.success) {
+				setDashboardData(data.dashboardData)
+			} else {
+				toast.error(data.message)
+			}
+		} catch (error) {
+			toast.error(error.message)
+		}
 	}
 
 	useEffect(() => {
-		fetchDashboardData()
-	}, [])
+		if (isEducator) {
+			fetchDashboardData()
+		}
+	}, [isEducator])
 
 	if (!dashboardData) return <Loading />
 
@@ -38,9 +55,9 @@ const Dashboard = () => {
 				/>
 			</div>
 
-			<div className="">
+			<div className=''>
 				<h2 className='text-lg pb-4 font-medium'>Latest Enrollments</h2>
-				<div className="flex flex-col items-center max-w-4xl w-full rounded-md bg-white border border-gray-500/20">
+				<div className='flex flex-col items-center max-w-4xl w-full rounded-md bg-white border border-gray-500/20'>
 					<table className='table-fixed md:table-auto w-full overflow-hidden'>
 						<thead className='text-gray-900 border-b border-gray-500/40 text-sm text-left'>
 							<tr>
@@ -51,7 +68,7 @@ const Dashboard = () => {
 								<th className='px-4 py-3 font-semibold'>Course Title</th>
 							</tr>
 						</thead>
-						<tbody className="text-sm text-gray-600">
+						<tbody className='text-sm text-gray-600'>
 							{dashboardData.enrolledStudentsData.map((item, index) => (
 								<tr key={index} className='border-b border-gray-500/20'>
 									<td className='px-4 py-3 text-center hidden sm:table-cell'>

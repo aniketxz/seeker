@@ -1,22 +1,58 @@
-import { useContext } from "react"
+import { useContext, useEffect } from "react"
 import { AppContext } from "../../context/AppContext"
 import { useState } from "react"
 import { Line } from "rc-progress"
+import axios from "axios"
 
 const MyEnrollments = () => {
-	const { enrolledCourses, calculateCourseDuration, navigate } =
-		useContext(AppContext)
+	const {
+		enrolledCourses,
+		calculateCourseDuration,
+		navigate,
+		userData,
+		fetchUserEnrolledCourses,
+		backendUrl,
+		getToken,
+		calculateNoOfLectures,
+	} = useContext(AppContext)
 
-	const [progressArray, setProgressArray] = useState([
-		{ lectureCompleted: 3, totalLectures: 4 },
-		{ lectureCompleted: 3, totalLectures: 6 },
-		{ lectureCompleted: 8, totalLectures: 12 },
-		{ lectureCompleted: 6, totalLectures: 15 },
-		{ lectureCompleted: 5, totalLectures: 6 },
-		{ lectureCompleted: 2, totalLectures: 8 },
-		{ lectureCompleted: 9, totalLectures: 15 },
-		{ lectureCompleted: 25, totalLectures: 25 },
-	])
+	const [progressArray, setProgressArray] = useState([])
+
+	const getCourseProgress = async () => {
+		try {
+			const token = await getToken()
+			const tempProgressArray = await Promise.all(
+				enrolledCourses.map(async (course) => {
+					const { data } = await axios.post(
+						`${backendUrl}/api/user/get-course-progress`,
+						{ courseId: course._id },
+						{ headers: { Authorization: `Bearer ${token}` } }
+					)
+					const totalLectures = calculateNoOfLectures(course)
+					const lectureCompleted = data.progressData
+						? data.progressData.lectureCompleted.length
+						: 0
+
+					return { totalLectures, lectureCompleted }
+				})
+			)
+			setProgressArray(tempProgressArray)
+		} catch (error) {
+			toast.error(error.message)
+		}
+	}
+
+	useEffect(() => {
+		if (userData) {
+			fetchUserEnrolledCourses()
+		}
+	}, [userData])
+
+	useEffect(() => {
+		if (enrolledCourses.length > 0) {
+			getCourseProgress()
+		}
+	}, [enrolledCourses])
 
 	return (
 		<section className='min-h-[90vh] px-8 md:px-36 pt-12 pb-20'>
@@ -25,14 +61,14 @@ const MyEnrollments = () => {
 				<thead className='text-gray-900 border-b border-gray-500/20 text-sm text-left'>
 					<tr>
 						<th className='px-4 py-3 font-semibold truncate'>Course</th>
-						<th className='px-4 py-3 font-semibold truncate max-md:hidden'>
+						<th className='px-4 py-3 font-semibold truncate max-lg:hidden'>
 							Duration
 						</th>
 						<th className='px-4 py-3 font-semibold truncate max-sm:hidden max-md:text-center'>
 							Completed
 						</th>
 						<th className='px-4 py-3 font-semibold truncate max-md:text-center'>
-							Status
+							Status / Action
 						</th>
 					</tr>
 				</thead>
@@ -59,7 +95,7 @@ const MyEnrollments = () => {
 									/>
 								</div>
 							</td>
-							<td className='px-4 py-3 max-md:hidden'>
+							<td className='px-4 py-3 max-lg:hidden'>
 								{calculateCourseDuration(course)}
 							</td>
 							<td className='px-4 py-3 max-sm:hidden max-md:text-center'>
@@ -77,7 +113,7 @@ const MyEnrollments = () => {
 										progressArray[index].totalLectures ===
 										1
 										? "Completed"
-										: "Ongoing"}
+										: "Go to course"}
 								</button>
 							</td>
 						</tr>

@@ -1,25 +1,37 @@
 import { useContext, useEffect, useState } from "react"
 import { AppContext } from "../../context/AppContext"
 import Loading from "../../components/student/Loading"
+import axios from "axios"
 
 const MyCourses = () => {
-	const { currency, allCourses } = useContext(AppContext)
+	const { currency, backendUrl, isEducator, getToken } = useContext(AppContext)
 
 	const [courses, setCourses] = useState(null)
-	console.log(courses)
+
 	const fetchEducatorCourses = async () => {
-		setCourses(allCourses)
+		try {
+			const token = await getToken()
+			const { data } = await axios.get(backendUrl + "/api/educator/courses", {
+				headers: { Authorization: `Bearer ${token}` },
+			})
+
+			data.success && setCourses(data.courses)
+		} catch (error) {
+			toast.error(error.message)
+		}
 	}
 
 	useEffect(() => {
-		fetchEducatorCourses()
-	}, [allCourses])
+		if (isEducator) {
+			fetchEducatorCourses()
+		}
+	}, [isEducator])
 
 	if (!courses) return <Loading />
 
 	return (
 		<section className='flex flex-col items-start justify-between p-4 md:p-8 pb-0 pt-8'>
-			<h2 className='pb-4 text-lg font-medium'>My Courses</h2>
+			<h2 className='pb-4 text-xl font-medium'>My Courses</h2>
 			<div className='flex flex-col items-center max-w-4xl w-full overflow-hidden rounded-md bg-white border border-gray-500/20'>
 				<table className='table-fixed md:table-auto w-full overflow-hidden'>
 					<thead className='text-gray-900 border-b border-gray-500/40 text-sm text-left'>

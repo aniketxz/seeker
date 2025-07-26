@@ -12,10 +12,13 @@ import MyCourses from "./pages/educator/MyCourses"
 import StudentsEnrolled from "./pages/educator/StudentsEnrolled"
 import StudentLayout from "./pages/student/StudentLayout"
 import "quill/dist/quill.snow.css"
+import { Toaster } from 'react-hot-toast';
+import Loading from "./components/student/Loading"
 
 function App() {
 	return (
-		<div>
+		<>
+			<Toaster />
 			<Routes>
 				<Route element={<StudentLayout />}>
 					<Route index element={<Home />} />
@@ -24,6 +27,7 @@ function App() {
 					<Route path='course/:id' element={<CourseDetails />} />
 					<Route path='my-enrollments' element={<MyEnrollments />} />
 					<Route path='player/:courseId' element={<Player />} />
+					<Route path='loading/:path' element={<Loading />} />
 				</Route>
 
 				<Route path='/educator' element={<Educator />}>
@@ -33,7 +37,7 @@ function App() {
 					<Route path='students-enrolled' element={<StudentsEnrolled />} />
 				</Route>
 			</Routes>
-		</div>
+		</>
 	)
 }
 

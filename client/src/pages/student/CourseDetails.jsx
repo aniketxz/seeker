@@ -5,6 +5,8 @@ import Loading from "../../components/student/Loading"
 import { assets } from "../../assets/assets"
 import humanizeDuration from "humanize-duration"
 import YouTube from "react-youtube"
+import axios from "axios"
+import toast from "react-hot-toast"
 
 const CourseDetails = () => {
 	const { id } = useParams()
@@ -21,18 +23,62 @@ const CourseDetails = () => {
 		calculateNoOfLectures,
 		calculateCourseDuration,
 		calculateChapterTime,
+		backendUrl,
+		userData,
+		getToken,
 	} = useContext(AppContext)
 
 	const courseRating = courseData && calcRating(courseData)
 
 	const fetchCourseData = async () => {
-		const selectedCourse = allCourses.find((course) => course._id === id)
-		setCourseData(selectedCourse)
+		try {
+			const { data } = await axios.get(backendUrl + "/api/course/" + id)
+
+			if (data.success) {
+				setCourseData(data.courseData)
+			} else {
+				toast.error(data.message)
+			}
+		} catch (error) {
+			toast.error(error.message)
+		}
+	}
+
+	const enrollCourse = async () => {
+		try {
+			if (!userData) {
+				return toast.error("Login to Enroll")
+			}
+			if (isAlreadyEnrolled) {
+				return toast.error("Already Enrolled")
+			}
+
+			const token = await getToken()
+			const { data } = await axios.post(
+				backendUrl + "/api/user/purchase",
+				{ courseId: courseData._id },
+				{ headers: { Authorization: `Bearer ${token}` } }
+			)
+
+			if (data.success) {
+				window.location.replace(data.session_url)
+			} else {
+				toast.error(data.message)
+			}
+		} catch (error) {
+			toast.error(error.message)
+		}
 	}
 
 	useEffect(() => {
 		fetchCourseData()
-	}, [id, allCourses])
+	}, [])
+
+	useEffect(() => {
+		if (userData && courseData) {
+			setIsAlreadyEnrolled(userData.enrolledCourses.includes(courseData._id))
+		}
+	}, [userData, courseData])
 
 	const toggleSection = (index) => {
 		setOpenSections((prev) => ({ ...prev, [index]: !prev[index] }))
@@ -55,7 +101,7 @@ const CourseDetails = () => {
 				<p
 					className='pt-4 text-sm md:text-base'
 					dangerouslySetInnerHTML={{
-						__html: courseData.courseDescription.slice(0, 200) + '...',
+						__html: courseData.courseDescription.slice(0, 200) + "...",
 					}}
 				></p>
 				{/* review and rating */}
@@ -85,7 +131,9 @@ const CourseDetails = () => {
 
 				<p className='text-sm'>
 					Course by{" "}
-					<span className='text-blue-600 underline'>Aniket Kumar</span>
+					<span className='text-blue-600 underline'>
+						{courseData.educator.name}
+					</span>
 				</p>
 
 				<div className='pt-8 text-gray-800'>
@@ -188,8 +236,8 @@ const CourseDetails = () => {
 					/>
 				) : (
 					<img src={courseData.courseThumbnail} alt='course thumbnail' />
-        )}
-        
+				)}
+
 				<div className='p-5'>
 					<div className='flex items-center gap-2'>
 						<img
@@ -240,7 +288,10 @@ const CourseDetails = () => {
 						</div>
 					</div>
 
-					<button className='mt-4 md:mt-6 w-full py-3 rounded bg-blue-600 text-white font-medium'>
+					<button
+						onClick={enrollCourse}
+						className='mt-4 md:mt-6 w-full py-3 rounded bg-blue-600 text-white font-medium'
+					>
 						{isAlreadyEnrolled ? "Already Enrolled" : "Enroll Now"}
 					</button>
 

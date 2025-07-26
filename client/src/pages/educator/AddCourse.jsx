@@ -1,8 +1,12 @@
 import Quill from "quill"
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import { assets } from "../../assets/assets"
+import { AppContext } from "../../context/AppContext"
+import axios from "axios"
+import toast from "react-hot-toast"
 
 const AddCourse = () => {
+	const { backendUrl, getToken } = useContext(AppContext)
 	const quillRef = useRef(null)
 	const editorRef = useRef(null)
 
@@ -76,7 +80,7 @@ const AddCourse = () => {
 							chapter.chapterContent.length > 0
 								? chapter.chapterContent.slice(-1)[0].lectureOrder + 1
 								: 1,
-						lectureId: crypto.randomUUID,
+						lectureId: crypto.randomUUID(),
 					}
 					chapter.chapterContent.push(newLecture)
 				}
@@ -93,14 +97,63 @@ const AddCourse = () => {
 	}
 
 	const handleSubmit = async (e) => {
-		e.preventDefault()
+		try {
+			e.preventDefault()
+			if (!image) {
+				toast.error("Thumbnail Not Selected")
+			}
+
+			const courseData = {
+				courseTitle,
+				courseDescription: quillRef.current.root.innerHTML,
+				coursePrice: Number(coursePrice),
+				discount: Number(discount),
+				courseContent: chapters,
+			}
+
+			const formData = new FormData()
+			formData.append("courseData", JSON.stringify(courseData))
+			formData.append("image", image)
+
+			const token = await getToken()
+			const { data } = await axios.post(
+				backendUrl + "/api/educator/add-course",
+				formData,
+				{ headers: { Authorization: `Bearer ${token}` } }
+			)
+
+			if (data.success) {
+				toast.success(data.message)
+				setCourseTitle("")
+				setCoursePrice(0)
+				setDiscount(0)
+				setImage(null)
+				setChapters([])
+				quillRef.current.root.innerHTML = ""
+			} else {
+				toast.error(data.message)
+			}
+		} catch (error) {
+			toast.error(error.message)
+		}
 	}
 
 	useEffect(() => {
 		if (!quillRef.current && editorRef.current) {
 			quillRef.current = new Quill(editorRef.current, {
-				theme: "snow",
+				theme: "snow"
 			})
+
+			// Remove all formatting on paste
+        quillRef.current.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
+            delta.ops = delta.ops.map(op => {
+                if (op.insert && typeof op.insert === "string") {
+                    return { insert: op.insert };
+                }
+                return op;
+            });
+            return delta;
+        });
 		}
 	}, [])
 
@@ -193,8 +246,8 @@ const AddCourse = () => {
 											chapter.collapsed && "-rotate-90"
 										}`}
 									/>
-										<span className="font-semibold">{chapterIndex + 1}</span>
-										<span className="font-semibold">{chapter.chapterTitle}</span>
+									<span className='font-semibold'>{chapterIndex + 1}</span>
+									<span className='font-semibold'>{chapter.chapterTitle}</span>
 								</div>
 								<span className='text-gray-500'>
 									{chapter.chapterContent.length} Lectures

@@ -2,6 +2,7 @@ import Stripe from "stripe"
 import Course from "../models/Course.js"
 import { Purchase } from "../models/Purchase.js"
 import User from "../models/User.js"
+import { CourseProgress } from "../models/CourseProgress.js"
 
 // Get User Data
 export const getUserData = async (req, res) => {
@@ -10,12 +11,14 @@ export const getUserData = async (req, res) => {
 		const user = await User.findById(userId)
 
 		if (!user) {
-			return res.json({ success: false, message: "User Not Found" })
+			// return res.json({ success: false, message: "User Not Found" })
+			return res.json({ success: false })
 		}
 
 		res.json({ success: true, user })
 	} catch (error) {
-		res.json({ success: false, message: error.message })
+		// res.json({ success: false, message: error.message })
+		res.json({ success: false })
 	}
 }
 
@@ -78,7 +81,7 @@ export const purchaseCourse = async (req, res) => {
 		]
 
 		const session = await stripeInstance.checkout.sessions.create({
-			success_url: `${origin}/my-enrollments`,
+			success_url: `${origin}/loading/my-enrollments`,
 			cancel_url: `${origin}/`,
 			line_items: line_items,
 			mode: "payment",
