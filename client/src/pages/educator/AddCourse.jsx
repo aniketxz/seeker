@@ -82,7 +82,10 @@ const AddCourse = () => {
 								: 1,
 						lectureId: crypto.randomUUID(),
 					}
-					chapter.chapterContent.push(newLecture)
+					return {
+						...chapter,
+						chapterContent: [...chapter.chapterContent, newLecture],
+					}
 				}
 				return chapter
 			})
@@ -141,19 +144,22 @@ const AddCourse = () => {
 	useEffect(() => {
 		if (!quillRef.current && editorRef.current) {
 			quillRef.current = new Quill(editorRef.current, {
-				theme: "snow"
+				theme: "snow",
 			})
 
 			// Remove all formatting on paste
-        quillRef.current.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
-            delta.ops = delta.ops.map(op => {
-                if (op.insert && typeof op.insert === "string") {
-                    return { insert: op.insert };
-                }
-                return op;
-            });
-            return delta;
-        });
+			quillRef.current.clipboard.addMatcher(
+				Node.ELEMENT_NODE,
+				(node, delta) => {
+					delta.ops = delta.ops.map((op) => {
+						if (op.insert && typeof op.insert === "string") {
+							return { insert: op.insert }
+						}
+						return op
+					})
+					return delta
+				}
+			)
 		}
 	}, [])
 
